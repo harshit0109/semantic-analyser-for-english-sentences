@@ -1,5 +1,32 @@
 import nltk
 from nltk import CFG
+# parser.py (add this helper function)
+def extend_grammar_with_new_words(new_words, pos_tag):
+    global grammar_rules, grammar, parser
+    if pos_tag.startswith('N'):
+        nouns.append(new_words)
+    elif pos_tag.startswith('V'):
+        verbs.append(new_words)
+    # regenerate CFG
+    grammar_rules_updated = f"""
+    S -> NP VP | S Conj S | S RelClause
+    NP -> Det N | Det Adj N | N | Adj N | Pronoun | NP PP | NP Conj NP
+    VP -> V NP | V NP PP | V | V PP | Aux V NP | VP Adv | Adv VP | VP Conj VP
+    PP -> P NP
+    RelClause -> RelPronoun VP
+    Det -> {' | '.join(f"'{d}'" for d in determiners)}
+    N -> {' | '.join(f"'{n}'" for n in nouns)}
+    Adj -> {' | '.join(f"'{a}'" for a in adjectives)}
+    Adv -> {' | '.join(f"'{a}'" for a in adverbs)}
+    V -> {' | '.join(f"'{v}'" for v in verbs)}
+    Aux -> {' | '.join(f"'{a}'" for a in aux_verbs)}
+    P -> {' | '.join(f"'{p}'" for p in prepositions)}
+    Pronoun -> {' | '.join(f"'{pr}'" for pr in pronouns)}
+    Conj -> {' | '.join(f"'{c}'" for c in conjunctions)}
+    RelPronoun -> {' | '.join(f"'{r}'" for r in relative_pronouns)}
+    """
+    grammar = CFG.fromstring(grammar_rules_updated)
+    parser = nltk.ChartParser(grammar)
 
 # --------------------------
 # Lexicon
