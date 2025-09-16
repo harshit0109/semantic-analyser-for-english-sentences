@@ -1,4 +1,21 @@
 from nltk.tree import Tree
+from nltk.stem import WordNetLemmatizer
+import json
+
+lemmatizer = WordNetLemmatizer()
+
+def lemmatize_tokens(tokens, pos_tags):
+    lemmatized = []
+    for word, tag in pos_tags:
+        if tag.startswith('V'):
+            lemmatized.append(lemmatizer.lemmatize(word, 'v'))  # verb → base form
+        else:
+            lemmatized.append(word)
+    return lemmatized
+
+def pretty_print_semantics(semantics):
+    print("\nSemantic Roles:")
+    print(json.dumps(semantics, indent=4))
 
 def extract_semantics(tree):
     """
@@ -49,14 +66,13 @@ def extract_semantics(tree):
         for child in np_tree:
             if isinstance(child, Tree):
                 if child.label() == "N" or child.label() == "Pronoun" or child.label() == "Det":
-                    continue  # terminal parts will be combined later
+                    continue
                 elif child.label() == "NP":
                     traverse_NP(child, is_subject)
                 elif child.label() == "PP":
                     roles["Modifiers"].append(get_phrase_leaves(child))
-                elif child.label() == "Conj":  # handle 'and', 'or'
+                elif child.label() == "Conj":
                     continue
-        # Collect full phrase
         phrase = get_phrase_leaves(np_tree)
         if is_subject:
             roles["Agents"].append(phrase)
@@ -72,27 +88,3 @@ def extract_semantics(tree):
                     traverse_VP(child)
 
     return roles
-
-# --------------------------
-# Test examples
-# --------------------------
-if __name__ == "__main__":
-    from nltk import Tree
-
-    # Nested clause
-    tree1 = Tree.fromstring(
-        "(S (NP (Det The) (N boy)) (VP (V chases) (NP (Det the) (N dog)) (S (NP (Pronoun who)) (VP (Aux is) (V running)))))"
-    )
-    print("Nested clause example:", extract_semantics(tree1))
-
-    # Conjunction
-    tree2 = Tree.fromstring(
-        "(S (NP (NP (Det The) (N cat)) (Conj and) (NP (Det the) (N dog))) (VP (V chase) (NP (Det the) (N ball))))"
-    )
-    print("Conjunction example:", extract_semantics(tree2))
-
-    # Multiple modifiers
-    tree3 = Tree.fromstring(
-        "(S (NP (Det The) (N boy)) (VP (V runs) (Adv quickly) (PP (P in) (NP (Det the) (N park)))))"
-    )
-    print("Multiple modifiers example:", extract_semantics(tree3))

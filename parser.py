@@ -4,11 +4,11 @@ from nltk import CFG
 # --------------------------
 # Lexicon
 # --------------------------
-nouns = ['cat', 'dog', 'boy', 'girl', 'ball', 'park', 'apple', 'john', 'mary']
+nouns = ['cat', 'dog', 'boy', 'girl', 'ball', 'park', 'apple', 'john', 'mary', 'cats', 'dogs', 'boys', 'girls', 'apples']
 adjectives = ['big', 'small', 'red', 'happy', 'angry']
 adverbs = ['quickly', 'slowly', 'silently']
-verbs = ['chases', 'sees', 'likes', 'throws', 'eats', 'runs', 'walks', 'eating', 'gives']
-aux_verbs = ['is', 'was', 'will', 'can']
+verbs = ['chase', 'see', 'like', 'throw', 'eat', 'run', 'walk', 'give', 'is', 'was', 'will', 'can', 'are', 'were', 'eating', 'chases', 'sees', 'likes', 'throws', 'eats', 'runs', 'walks', 'gives']
+aux_verbs = ['is', 'was', 'will', 'can', 'are']
 determiners = ['a', 'the', 'an', 'this', 'that']
 prepositions = ['with', 'to', 'in', 'on', 'at']
 pronouns = ['he', 'she', 'they', 'it', 'we', 'i']
