@@ -18,9 +18,9 @@ def main():
     # Parse the sentence
     trees = parse_sentence(tokens)
     
-    # Extract semantic roles
+    # Extract semantic roles including tense
     for tree in trees:
-        semantics = extract_semantics(tree)
+        semantics = extract_semantics(tree, pos_tags)  # <-- pass pos_tags here
         pretty_print_semantics(semantics)
 
 if __name__ == "__main__":
