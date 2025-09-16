@@ -1,13 +1,11 @@
-# tokenizer.py
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk import pos_tag
 
 def tokenize_sentence(sentence):
-    # Step 1: Tokenize words
-    tokens = word_tokenize(sentence)
-    
-    # Step 2: POS tagging
+    # Tokenize the sentence
+    tokens = word_tokenize(sentence.lower())
+    # POS tagging (for debugging / later use, but not for parser)
     pos_tags = pos_tag(tokens)
-    
-    return pos_tags
+    print("POS Tags:", pos_tags)   # just to see
+    return tokens
