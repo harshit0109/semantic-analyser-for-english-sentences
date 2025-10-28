@@ -512,6 +512,9 @@ class SemanticAnalyzer:
         if not struct:
             return ""
         
+        # Store sentence classes for tree generation
+        self._last_sentence_classes = {}
+            
         # Use sense-annotated words if available
         if 'words_with_senses' in struct:
             left_word, rel_word, right_word = struct['words_with_senses']
@@ -533,3 +536,164 @@ class SemanticAnalyzer:
         rel_str = rel_word.upper()
         
         return f"({left_str} {rel_str} {right_str})"
+        
+    def format_syntax_tree(self, interpretation, sentence_classes=None):
+        """Generate and format a syntactic phrase structure tree."""
+        if not interpretation or not sentence_classes:
+            return "NO PARSE TREE"
+        try:
+            # Get sentence parts
+            left_num, rel_num, right_num = interpretation['positions']
+            left_word, rel_word, right_word = interpretation['words']
+            
+            # Basic tree structure
+            tree = ["[S"]
+            
+            # Subject phrase
+            tree.append("  [NP")
+            subj_det = sentence_classes.get(left_num - 1, {})
+            if subj_det and 'ART' in subj_det.get('classes', []):
+                tree.append(f"    [DET {subj_det['word'].title()}]")
+            subj_adj = sentence_classes.get(left_num - 1, {})
+            if subj_adj and any(c in subj_adj.get('classes', []) for c in ['ADJ', 'EMOTION', 'SIZE']):
+                tree.append(f"    [ADJ {subj_adj['word']}]")
+            tree.append(f"    [N {left_word}]")
+            tree.append("  ]")
+            
+            # Verb phrase
+            tree.append("  [VP")
+            tree.append(f"    [V {rel_word}]")
+            
+            # Check for PP
+            prep_pos = None
+            prep_word = None
+            
+            # Look for preposition between verb and object
+            for pos in range(rel_num + 1, right_num):
+                word_info = sentence_classes.get(pos, {})
+                if 'PREP' in word_info.get('classes', []):
+                    prep_pos = pos
+                    prep_word = word_info['word']
+                    break
+            
+            # Handle PP if found
+            if prep_pos:
+                tree.append("    [PP")
+                tree.append(f"      [P {prep_word}]")
+                tree.append("      [NP")
+                
+                # Object determiner
+                obj_det = sentence_classes.get(right_num - 1, {})
+                if obj_det and 'ART' in obj_det.get('classes', []):
+                    tree.append(f"        [DET {obj_det['word'].title()}]")
+                
+                # Object adjective
+                obj_adj = sentence_classes.get(right_num - 2, {})
+                if obj_adj and any(c in obj_adj.get('classes', []) for c in ['ADJ', 'EMOTION', 'SIZE']):
+                    tree.append(f"        [ADJ {obj_adj['word']}]")
+                
+                tree.append(f"        [N {right_word}]")
+                tree.append("      ]")
+                tree.append("    ]")
+            else:
+                # Direct object
+                tree.append("    [NP")
+                obj_det = sentence_classes.get(right_num - 1, {})
+                if obj_det and 'ART' in obj_det.get('classes', []):
+                    tree.append(f"      [DET {obj_det['word'].title()}]")
+                obj_adj = sentence_classes.get(right_num - 2, {})
+                if obj_adj and any(c in obj_adj.get('classes', []) for c in ['ADJ', 'EMOTION', 'SIZE']):
+                    tree.append(f"      [ADJ {obj_adj['word']}]")
+                tree.append(f"      [N {right_word}]")
+                tree.append("    ]")
+            
+            tree.append("  ]")
+            tree.append("]")
+            
+            return "\n".join(tree)
+        except Exception as e:
+            return f"ERROR: {str(e)}"
+            return "NO PARSE TREE - Generation failed"
+    
+    def _format_tree_recursive(self, struct, level=0):
+        """Format syntax tree recursively, adding phrase nodes with proper indentation."""
+        if not struct:
+            return ""
+
+        indent = "  " * level
+        
+        # Get the SEF and word positions
+        sef = struct.get('sef')
+        positions = struct.get('positions', ())
+        words = struct.get('words', ())
+        
+        if not positions or not words:
+            return ""
+            
+        left_num, rel_num, right_num = positions
+        left_word, rel_word, right_word = words
+        
+        # Get class information for all words
+        rel_info = self._last_sentence_classes.get(rel_num, {})
+        left_info = self._last_sentence_classes.get(left_num, {})
+        right_info = self._last_sentence_classes.get(right_num, {})
+        
+        result = []
+        
+        # Determine if this is a sentence-level structure
+        is_sentence = any('V' in self._last_sentence_classes.get(p, {}).get('classes', []) 
+                         for p in range(1, max(positions)+1))
+        
+        # Add sentence node at top level only
+        if level == 0 and is_sentence:
+            result.append(f"[S")
+            level += 1
+            indent = "  " * level
+            
+        # Handle subject noun phrase
+        if 'PERSON' in left_info.get('classes', []) or 'N' in left_info.get('classes', []):
+            result.append(f"{indent}[NP")
+            inner_indent = "  " * (level + 1)
+            
+            # Add determiner if present
+            prev_word = self._last_sentence_classes.get(left_num - 1, {})
+            if 'ART' in prev_word.get('classes', []):
+                result.append(f"{inner_indent}[DET {prev_word['word']}]")
+                
+            # Add adjective if present
+            if any(c in prev_word.get('classes', []) for c in ['ADJ', 'EMOTION', 'QUALITY', 'COLOR']):
+                result.append(f"{inner_indent}[ADJ {prev_word['word']}]")
+                
+            result.append(f"{inner_indent}[N {left_word}]")
+            result.append(f"{indent}]")
+            
+        # Handle verb phrase
+        if 'V' in rel_info.get('classes', []):
+            result.append(f"{indent}[VP")
+            result.append(f"{indent}  [V {rel_word}]")
+            
+            # Handle object within VP if present
+            if right_num > 0 and right_info:
+                inner_indent = "  " * (level + 2)
+                if any(c in right_info.get('classes', []) for c in ['N', 'OBJECT']):
+                    result.append(f"{indent}  [NP")
+                    
+                    # Add determiner for object if present
+                    prev_word = self._last_sentence_classes.get(right_num - 1, {})
+                    if 'ART' in prev_word.get('classes', []):
+                        result.append(f"{inner_indent}[DET {prev_word['word']}]")
+                    
+                    # Add adjective for object if present
+                    if any(c in prev_word.get('classes', []) for c in ['ADJ', 'QUALITY', 'COLOR']):
+                        result.append(f"{inner_indent}[ADJ {prev_word['word']}]")
+                    
+                    result.append(f"{inner_indent}[N {right_word}]")
+                    result.append(f"{indent}  ]")
+                    
+            result.append(f"{indent}]")
+            
+        # Close sentence node if needed
+        if level == 1 and is_sentence:
+            result.append("]")
+            
+        return "\n".join(result) if result else ""
