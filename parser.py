@@ -80,6 +80,65 @@ parser = nltk.ChartParser(grammar)
 # --------------------------
 # Parsing function
 # --------------------------
+def get_tree_width(tree):
+    """Calculate the width needed for the tree"""
+    if isinstance(tree, str):
+        return len(tree)
+    label = tree.label()
+    if not tree:
+        return len(label)
+    children_width = sum(get_tree_width(child) for child in tree) + (len(tree) - 1) * 2
+    return max(len(label), children_width)
+
+def print_centered(text, width):
+    """Print text centered within the given width"""
+    padding = (width - len(text)) // 2
+    return ' ' * padding + text
+
+def print_tree_top_down(tree):
+    """Print a parse tree in a top-down manner"""
+    def make_box(text):
+        """Create a box around text"""
+        width = len(text) + 4
+        return [
+            '┌' + '─' * (width - 2) + '┐',
+            '│ ' + text + ' │',
+            '└' + '─' * (width - 2) + '┘'
+        ]
+
+    def _print_tree(node, indent='', last=True):
+        """Print tree recursively"""
+        box = make_box(node.label() if not isinstance(node, str) else node)
+        
+        # Print current node's box
+        for line in box:
+            print(indent + line)
+
+        if isinstance(node, str):
+            return
+
+        children = list(node)
+        if not children:
+            return
+
+        # Print connector to children
+        if children:
+            print(indent + '│')
+            if len(children) == 1:
+                print(indent + '↓')
+            else:
+                print(indent + '├─────┴─────┤')
+                print(indent + '↓           ↓')
+
+        # Print children
+        for i, child in enumerate(children):
+            is_last = (i == len(children) - 1)
+            new_indent = indent + ('    ' if is_last else '│   ')
+            _print_tree(child, new_indent, is_last)
+
+    print("\nParse Tree:")
+    _print_tree(tree)
+
 def parse_sentence(tokens):
     try:
         parses = list(parser.parse(tokens))
@@ -88,7 +147,8 @@ def parse_sentence(tokens):
             return []
 
         for tree in parses:
-            tree.pretty_print()
+            print("\nParse Tree:")
+            print_tree_top_down(tree)
         return parses
     except ValueError as e:
         print("Grammar coverage error:", e)

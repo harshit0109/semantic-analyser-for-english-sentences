@@ -34,13 +34,22 @@ def main():
     print(" SEMANTIC ANALYZER - Simmons & Burger (1968) Implementation")
     print("="*70 + "\n")
     
+    def split_into_sentences(text):
+        """Split text at full stops and return cleaned sentences."""
+        parts = [s.strip() for s in text.split('.')]
+        return [p for p in parts if p]
+
     # Try to read from stdin first
     import sys
     if not sys.stdin.isatty():
         try:
-            sentence = sys.stdin.readline().strip()
-            if sentence:
-                analyze_and_display(analyzer, sentence)
+            # Read the full stdin content (may contain multiple sentences)
+            content = sys.stdin.read().strip()
+            if content:
+                # Split on full stop and process each non-empty sentence
+                sentences = split_into_sentences(content)
+                for s in sentences:
+                    analyze_and_display(analyzer, s)
             return
         except:
             pass
@@ -49,9 +58,11 @@ def main():
     print("Choose mode:")
     print("1. Run example sentences from paper")
     print("2. Enter your own sentence")
-    
+    print("3. Enter a paragraph (multiple sentences)")
+    print("4. Provide a file containing paragraphs (one or more)")
+
     try:
-        choice = input("\nEnter choice (1 or 2): ").strip()
+        choice = input("\nEnter choice (1, 2, 3 or 4): ").strip()
     except EOFError:
         print("\nNo input provided. Running example: The student reads a book.")
         analyze_and_display(analyzer, "The student reads a book.")
@@ -71,22 +82,86 @@ def main():
                     input("\nPress Enter to continue to next example...")
                 except EOFError:
                     break
-    else:
-        # Interactive mode
+    elif choice == '2':
+        # Interactive single-sentence mode
         while True:
             print("\n" + "="*70)
             try:
                 sentence = input("\nEnter sentence (or 'quit' to exit): ").strip()
             except EOFError:
                 break
-                
+
             if sentence.lower() in ['quit', 'exit', 'q']:
                 break
-            
+
             if not sentence:
                 continue
-            
+
             analyze_and_display(analyzer, sentence)
+
+    elif choice == '3':
+        # Interactive paragraph mode
+        while True:
+            print("\n" + "="*70)
+            try:
+                paragraph = input("\nEnter paragraph (or 'quit' to exit): ").strip()
+            except EOFError:
+                break
+
+            if paragraph.lower() in ['quit', 'exit', 'q']:
+                break
+
+            if not paragraph:
+                continue
+
+            sentences = split_into_sentences(paragraph)
+            for s in sentences:
+                analyze_and_display(analyzer, s)
+
+    elif choice == '4':
+        # File input mode
+        while True:
+            try:
+                filepath = input("\nEnter path to text file (or 'quit' to exit): ").strip()
+            except EOFError:
+                break
+
+            if not filepath:
+                continue
+            if filepath.lower() in ['quit', 'exit', 'q']:
+                break
+
+            try:
+                with open(filepath, 'r', encoding='utf-8') as fh:
+                    content = fh.read()
+            except Exception as e:
+                print(f"Error reading file: {e}")
+                continue
+
+            # Split file content into sentences and analyze each
+            sentences = split_into_sentences(content)
+            for s in sentences:
+                analyze_and_display(analyzer, s)
+            break
+
+    else:
+        # Fallback: original interactive paragraph-friendly mode
+        while True:
+            print("\n" + "="*70)
+            try:
+                paragraph = input("\nEnter sentence (or paragraph) (or 'quit' to exit): ").strip()
+            except EOFError:
+                break
+
+            if paragraph.lower() in ['quit', 'exit', 'q']:
+                break
+
+            if not paragraph:
+                continue
+
+            sentences = split_into_sentences(paragraph)
+            for s in sentences:
+                analyze_and_display(analyzer, s)
 
 def generate_parse_tree(words):
     """Generate a parse tree for a sentence."""
